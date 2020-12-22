@@ -1384,6 +1384,18 @@ export let DOM = {
     return callback ? array.forEach(callback) : array
   },
 
+  walkElements(parent, callback){
+    callback(parent)
+    for(let i = 0; i < parent.childElementCount; i++){
+      let child = parent.children[i]
+      if(child.firstElementChild){
+        this.walkElements(child, callback)
+      } else {
+        callback(child)
+      }
+    }
+  },
+
   childNodeLength(html){
     let template = document.createElement("template")
     template.innerHTML = html
@@ -1832,7 +1844,11 @@ class DOMPatch {
           if(el.getAttribute && el.getAttribute(PHX_REMOVE) !== null){ return true }
           if(el.parentNode !== null && DOM.isPhxUpdate(el.parentNode, phxUpdate, ["append", "prepend"]) && el.id){ return false }
           if(this.skipCIDSibling(el)){ return false }
-          this.trackBefore("discarded", el)
+          if(el.nodeType === Node.ELEMENT_NODE){
+            DOM.walkElements(el, child => this.trackBefore("discarded", child))
+          } else {
+            this.trackBefore("discarded", el)
+          }
           return true
         },
         onElUpdated: (el) => {

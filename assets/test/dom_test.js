@@ -7,6 +7,32 @@ describe("DOM", () => {
     curTitle && curTitle.remove()
   })
 
+  describe("walkElements", () => {
+    test("walks all elements, ignoring text nodes", () => {
+      let container = tag("div", {}, `
+        <span>Hello</span>
+        <hr>
+        <div id="lvl1">
+          <div id="lvl2">
+            <div id="lvl3.1"></div>
+            <div id="lvl3.2"></div>
+          </div>
+        </div>
+      `)
+      document.body.appendChild(container)
+      let found = []
+      let i = 0
+      DOM.walkElements(container, child => found.push(child))
+      expect(found[i++].outerHTML).toBe(container.outerHTML)
+      expect(found[i++].outerHTML).toBe(`<span>Hello</span>`)
+      expect(found[i++].outerHTML).toBe(`<hr>`)
+      expect(found[i++].id).toBe("lvl1")
+      expect(found[i++].id).toBe("lvl2")
+      expect(found[i++].id).toBe("lvl3.1")
+      expect(found[i++].id).toBe("lvl3.2")
+    })
+  })
+
   describe("putTitle", () => {
     test("with no attributes", () => {
       appendTitle({})
