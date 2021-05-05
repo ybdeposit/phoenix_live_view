@@ -768,6 +768,15 @@ export class LiveSocket {
   disableLatencySim(){ sessionStorage.removeItem(PHX_LV_LATENCY_SIM) }
 
   getLatencySim(){
+    // Fix error 
+    // "SecurityError: Failed to read the 'sessionStorage' property from 'Window': Access is denied for this document."
+    // When 3rd party cookies are blocked
+    try{
+      sessionStorage
+    } catch(e) {
+      return null
+    }
+
     let str = sessionStorage.getItem(PHX_LV_LATENCY_SIM)
     return str ? parseInt(str) : null
   }
