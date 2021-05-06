@@ -8,6 +8,13 @@ See the hexdocs at `https://hexdocs.pm/phoenix_live_view` for documentation.
 */
 
 import morphdom from "morphdom"
+import KeyValueStorage from "./key_value_storage"
+
+// Replace localStorage, sessionStorage with custom implementation
+// Fix security error when 3rd party cookies are blocked
+// "SecurityError: Failed to read the 'sessionStorage' property from 'Window': Access is denied for this document."
+window.localCustomStorage = new KeyValueStorage()
+window.sessionCustomStorage = new KeyValueStorage()
 
 const CONSECUTIVE_RELOADS = "consecutive-reloads"
 const MAX_RELOADS = 10
@@ -747,37 +754,28 @@ export class LiveSocket {
 
   // public
 
-  isProfileEnabled(){ return sessionStorage.getItem(PHX_LV_PROFILE) === "true" }
+  isProfileEnabled(){ return sessionCustomStorage.getItem(PHX_LV_PROFILE) === "true" }
 
-  isDebugEnabled(){ return sessionStorage.getItem(PHX_LV_DEBUG) === "true" }
+  isDebugEnabled(){ return sessionCustomStorage.getItem(PHX_LV_DEBUG) === "true" }
 
-  enableDebug(){ sessionStorage.setItem(PHX_LV_DEBUG, "true") }
+  enableDebug(){ sessionCustomStorage.setItem(PHX_LV_DEBUG, "true") }
 
-  enableProfiling(){ sessionStorage.setItem(PHX_LV_PROFILE, "true") }
+  enableProfiling(){ sessionCustomStorage.setItem(PHX_LV_PROFILE, "true") }
 
-  disableDebug(){ sessionStorage.removeItem(PHX_LV_DEBUG) }
+  disableDebug(){ sessionCustomStorage.removeItem(PHX_LV_DEBUG) }
 
-  disableProfiling(){ sessionStorage.removeItem(PHX_LV_PROFILE) }
+  disableProfiling(){ sessionCustomStorage.removeItem(PHX_LV_PROFILE) }
 
   enableLatencySim(upperBoundMs){
     this.enableDebug()
     console.log("latency simulator enabled for the duration of this browser session. Call disableLatencySim() to disable")
-    sessionStorage.setItem(PHX_LV_LATENCY_SIM, upperBoundMs)
+    sessionCustomStorage.setItem(PHX_LV_LATENCY_SIM, upperBoundMs)
   }
 
-  disableLatencySim(){ sessionStorage.removeItem(PHX_LV_LATENCY_SIM) }
+  disableLatencySim(){ sessionCustomStorage.removeItem(PHX_LV_LATENCY_SIM) }
 
   getLatencySim(){
-    // Fix error 
-    // "SecurityError: Failed to read the 'sessionStorage' property from 'Window': Access is denied for this document."
-    // When 3rd party cookies are blocked
-    try{
-      sessionStorage
-    } catch(e) {
-      return null
-    }
-
-    let str = sessionStorage.getItem(PHX_LV_LATENCY_SIM)
+    let str = sessionCustomStorage.getItem(PHX_LV_LATENCY_SIM)
     return str ? parseInt(str) : null
   }
 
@@ -1303,19 +1301,19 @@ export let Browser = {
   canPushState(){ return (typeof(history.pushState) !== "undefined") },
 
   dropLocal(namespace, subkey){
-    return window.localStorage.removeItem(this.localKey(namespace, subkey))
+    return window.localCustomStorage.removeItem(this.localKey(namespace, subkey))
   },
 
   updateLocal(namespace, subkey, initial, func){
     let current = this.getLocal(namespace, subkey)
     let key = this.localKey(namespace, subkey)
     let newVal = current === null ? initial : func(current)
-    window.localStorage.setItem(key, JSON.stringify(newVal))
+    window.localCustomStorage.setItem(key, JSON.stringify(newVal))
     return newVal
   },
 
   getLocal(namespace, subkey){
-    return JSON.parse(window.localStorage.getItem(this.localKey(namespace, subkey)))
+    return JSON.parse(window.localCustomStorage.getItem(this.localKey(namespace, subkey)))
   },
 
   fetchPage(href, callback){
